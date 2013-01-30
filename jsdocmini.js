@@ -104,7 +104,12 @@ function getDocSlug(jsStr, pos) {
     pos = newPos;
   }
 
+  // Prototype assignment:
   rv = rv.replace(/^.*\w+\.prototype\.(\w+).*$/g, '$1');
+  // Named function:
+  rv = rv.replace(/^.*function\s+(\w+)\(.*$/g, '$1');
+  // Object, property or variable assignment:
+  rv = rv.replace(/^.*(\w+)\s*[:=]\s*function\s*\(.*$/g, '$1');
   return rv;
 }
 
