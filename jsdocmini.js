@@ -3,6 +3,8 @@ var opts = require('optimist');
 var path = require('path');
 var fs = require('fs');
 var acorn = require('./lib/acorn.js');
+var sd = require('showdown');
+var showdown = new sd.converter();
 
 var argv = opts.usage("Document a bunch of files.\nUsage $0")
                .demand(1)
@@ -11,30 +13,60 @@ var argv = opts.usage("Document a bunch of files.\nUsage $0")
 
 
 var outputDir = argv.out;
+if (outputDir.charAt(outputDir.length - 1) != path.sep) {
+  outputDir += path.sep;
+}
 var inputFiles = argv._;
-
-var filesNotReadYet = inputFiles.length;
+var pendingDirExplorations = 0;
+var pendingReads = 0;
+var buffersToDocument = [];
 var filesToWrite = 0;
 
-inputFiles.forEach(documentFile);
-var buffersToDocument = [];
+var totalFilesParsed = 0, totalFilesWritten = 0;
 
-function documentFile(path) {
-  fs.readFile(path, function(err, b) {
-    filesNotReadYet--;
-    if (err) { throw err; }
-    buffersToDocument.push({b: b, path: path});
+
+function documentFile(pathName) {
+  pendingReads++;
+  totalFilesParsed++;
+  fs.readFile(pathName, function(err, b) {
+    pendingReads--;
+    if (err) {
+      if (err.code == 'EISDIR') {
+        pendingDirExplorations++;
+        console.log(pathName + " is a directory, reading all files...");
+        fs.readdir(pathName, function onFiles(err, files) {
+          if (err) throw err;
+          files.forEach(function(f) {
+            if (path.extname(f) == '.js') {
+              inputFiles.push(pathName + path.sep + f);
+            }
+          });
+          pendingDirExplorations--;
+        });
+      } else {
+        throw err;
+      }
+    } else {
+      buffersToDocument.push({b: b, path: pathName});
+    }
   });
 }
 
 process.nextTick(eventLoop)
 
 function eventLoop() {
+  var pendingStuff = pendingReads + pendingDirExplorations + inputFiles.length + buffersToDocument.length + filesToWrite;
+  if (pendingStuff != 0) {
+    process.nextTick(eventLoop);
+  } else {
+    console.log("Finished, wrote documentation for " + totalFilesWritten + " out of " + totalFilesParsed + " files.");
+  }
+
+  if (inputFiles.length != 0) {
+    documentFile(inputFiles.shift());
+  }
   if (buffersToDocument.length != 0) {
     documentBuffer(buffersToDocument.shift());
-  }
-  if (filesNotReadYet != 0 || buffersToDocument.length != 0 || filesToWrite != 0) {
-    process.nextTick(eventLoop);
   }
 }
 
@@ -63,11 +95,13 @@ function documentBuffer(b) {
   ensureDir(comments, b.path);
 }
 
-function ensureDir(commentList, path) {
-  filesToWrite++;
-  fs.mkdir(outputDir, function(err, d) {
-    outputDocs(commentList, path);
-  });
+function ensureDir(commentList, pathName) {
+  if (commentList.length) {
+    filesToWrite += 2;
+    fs.mkdir(outputDir, function(err, d) {
+      outputDocs(commentList, pathName);
+    });
+  }
 }
 
 function outputDocs(commentList, pathName) {
@@ -79,17 +113,22 @@ function outputDocs(commentList, pathName) {
     outParts.push(t);
   }
   var fileName = path.basename(pathName, path.extname(pathName));
-  fs.writeFile(outputDir + fileName + '.md',
-    '# ' + fileName + '\n' +
-    outParts.join('\n\n'),
-    'utf8',
-    function(err, f) {
-      if (!err) console.log("Wrote docs for " + pathName);
-      else console.error("Error writing docs for " + pathName);
-
-      filesToWrite--;
+  var md = '# ' + fileName + '\n' + outParts.join('\n\n');
+  var wrote = false;
+  function onFW(err) {
+    if (err) {
+      console.error("Error writing docs for " + fileName);
     }
-  );
+    if (wrote) {
+      console.log("Finished writing docs for " + fileName);
+    } else if (!err) {
+      totalFilesWritten++;
+      wrote = true;
+    }
+    filesToWrite--;
+  }
+  fs.writeFile(outputDir + fileName + '.md', md, 'utf8', onFW);
+  fs.writeFile(outputDir + fileName + '.html', showdown.makeHtml(md), 'utf8', onFW);
 }
 
 
