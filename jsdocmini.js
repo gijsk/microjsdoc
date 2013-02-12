@@ -76,7 +76,7 @@ function documentBuffer(b) {
   var comments = [];
   function checkComment(isBlock, text, start, end) {
     if (isBlock && text[0] == '*') {
-      var startingStar = /^\s*\*/gim;
+      var startingStar = /^\s*\*\s?/gim;
       var docSlug = getDocSlug(jsInput, end);
       var c = {text: text.replace(startingStar, ''), start: start};
       if (docSlug) {
@@ -143,13 +143,18 @@ function getDocSlug(jsStr, pos) {
     pos = newPos;
   }
 
-  // Prototype assignment:
-  rv = rv.replace(/^.*\w+\.prototype\.(\w+).*$/g, '$1');
-  // Named function:
-  rv = rv.replace(/^.*function\s+(\w+)\(.*$/g, '$1');
-  // Object, property or variable assignment:
-  rv = rv.replace(/^.*(\w+)\s*[:=]\s*function\s*\(.*$/g, '$1');
-  return rv;
+  var replacers = [
+    /^.*\w+\.prototype\.(\w+).*$/g,
+    /^.*function\s+(\w+)\(.*$/g,
+    /^.*\W(\w+)\s*[:=]\s*function\s*\(.*$/g
+  ];
+
+  var haveReplaced = false, i = replacers.length, lastRV = rv;
+  while (i-- > 0 && !(haveReplaced = (rv != lastRV))) {
+    lastRV = rv;
+    rv = rv.replace(replacers[i], '$1');
+  }
+  return haveReplaced ? rv : '';
 }
 
 
