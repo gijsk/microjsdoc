@@ -139,22 +139,23 @@ function getDocSlug(jsStr, pos) {
   var oldPos = pos;
   while (!rv && pos < len) {
     var newPos = jsStr.indexOf('\n', pos + 1);
-    rv = jsStr.substring(pos, newPos).trim();
+    rv = jsStr.substring(pos, newPos);
     pos = newPos;
   }
 
   var replacers = [
-    /^.*\w+\.prototype\.(\w+).*$/g,
-    /^.*function\s+(\w+)\(.*$/g,
-    /^.*\W(\w+)\s*[:=]\s*function\s*\(.*$/g
+    /function\s+(\w+)\(.*$/g,
+    /(?:^|\W+)(\w+)\s*[:=]\s*function\s*\(.*$/g,
+    /\w+\.prototype\.(\w+).*$/g
   ];
 
   var haveReplaced = false, i = replacers.length, lastRV = rv;
-  while (i-- > 0 && !(haveReplaced = (rv != lastRV))) {
+  while (i-- > 0 && !haveReplaced) {
     lastRV = rv;
     rv = rv.replace(replacers[i], '$1');
+    haveReplaced = (rv != lastRV);
   }
-  return haveReplaced ? rv : '';
+  return haveReplaced ? rv.trim() : '';
 }
 
 
