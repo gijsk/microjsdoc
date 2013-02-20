@@ -8,6 +8,7 @@ var showdown = new sd.converter();
 
 var argv = opts.usage("Document a bunch of files.\nUsage $0")
                .demand(1)
+               .describe("pre", "pre-processing JS file.")
                .default("out", "doc/")
                .describe("out", "where output should go").argv;
 
@@ -16,6 +17,7 @@ var outputDir = argv.out;
 if (outputDir.charAt(outputDir.length - 1) != path.sep) {
   outputDir += path.sep;
 }
+var preProcess = argv.pre ? require(argv.pre) : function(x) { return x; };
 var inputFiles = argv._;
 var pendingDirExplorations = 0;
 var pendingReads = 0;
@@ -114,6 +116,7 @@ function outputDocs(commentList, pathName) {
   }
   var fileName = path.basename(pathName, path.extname(pathName));
   var md = '# ' + fileName + '\n' + outParts.join('\n\n');
+  md = preProcess(md);
   var wrote = false;
   function onFW(err) {
     if (err) {
