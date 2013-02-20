@@ -158,11 +158,11 @@ function outputDocs(commentList, pathName) {
   }
   fs.writeFile(outputDir + fileName + '.md', md, 'utf8', onFW);
 
-  var html = '<!DOCTYPE html><html><head><title>' + fileName + '</title><meta charset="utf8">';
+  var html = '<!DOCTYPE html><html><head><title>' + fileName[0].toUpperCase() + fileName.substring(1) + '</title><meta charset="utf8">';
   if (cssFile) {
     html += '<link href="style.css" rel="stylesheet" type="text/css" />';
   }
-  html += postProcess(showdown.makeHtml(md));
+  html += '</head><body>' + postProcess(showdown.makeHtml(md)) + '</body></html>\n\n';
   fs.writeFile(outputDir + fileName + '.html', html, 'utf8', onFW);
 }
 
