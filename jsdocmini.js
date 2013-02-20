@@ -180,7 +180,7 @@ function getDocSlug(jsStr, pos) {
 
   var replacers = [
     /function\s+(\w+)\(.*$/g,
-    /(?:^|\W+)(\w+)\s*[:=]\s*function\s*\(.*$/g,
+    /.+?(\w+)\s*[:=]\s*function\s*\(.*$/g,
     /\w+\.prototype\.(\w+).*$/g
   ];
 
