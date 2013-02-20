@@ -104,7 +104,7 @@ function documentBuffer(b) {
   var comments = [];
   function checkComment(isBlock, text, start, end) {
     if (isBlock && text[0] == '*') {
-      var startingStar = /^\s*\*\s?/gim;
+      var startingStar = /^\s*\*[\t ]?/gim;
       var docSlug = getDocSlug(jsInput, end);
       var c = {text: text.replace(startingStar, ''), start: start};
       if (docSlug) {
