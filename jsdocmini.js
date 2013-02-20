@@ -136,7 +136,10 @@ function outputDocs(commentList, pathName) {
   var outParts = [];
   for (var i = 0; i < commentList.length; i++) {
     var c = commentList[i];
-    var t = c.slug ? '## ' + c.slug + '\n' : '';
+    var t = '';
+    if (c.slug) {
+      t += '##' + ((c.slug[0] && c.slug[0] == c.slug[0].toLowerCase()) ? '# ' : ' ') + c.slug + '\n';
+    }
     t += c.text;
     outParts.push(t);
   }
