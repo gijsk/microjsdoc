@@ -9,6 +9,8 @@ var showdown = new sd.converter();
 var argv = opts.usage("Document a bunch of files.\nUsage $0")
                .demand(1)
                .describe("pre", "pre-processing JS file.")
+               .describe("post", "post-processing JS file.")
+               .describe("css", "CSS file to include")
                .default("out", "doc/")
                .describe("out", "where output should go").argv;
 
@@ -18,6 +20,8 @@ if (outputDir.charAt(outputDir.length - 1) != path.sep) {
   outputDir += path.sep;
 }
 var preProcess = argv.pre ? require(argv.pre) : function(x) { return x; };
+var postProcess = argv.post ? require(argv.post) : function(x) { return x; };
+var cssFile = argv.css || '';
 var inputFiles = argv._;
 var pendingDirExplorations = 0;
 var pendingReads = 0;
@@ -25,7 +29,26 @@ var buffersToDocument = [];
 var filesToWrite = 0;
 
 var totalFilesParsed = 0, totalFilesWritten = 0;
+function copyFile(src, target, cb) {
+  var readStream = fs.createReadStream(src),
+      writeStream = fs.createWriteStream(target);
+  readStream.pipe(writeStream);
+  readStream.once('end', cb);
+}
 
+
+function handleCSS(cb) {
+  if (cssFile) {
+    fs.mkdir(outputDir, function(err, d) {
+      copyFile(cssFile, outputDir + 'style.css', function(err) {
+        cb();
+        console.log("Copied CSS file");
+      });
+    });
+  } else {
+    process.nextTick(cb);
+  }
+}
 
 function documentFile(pathName) {
   pendingReads++;
@@ -61,7 +84,10 @@ function eventLoop() {
   if (pendingStuff != 0) {
     process.nextTick(eventLoop);
   } else {
-    console.log("Finished, wrote documentation for " + totalFilesWritten + " out of " + totalFilesParsed + " files.");
+    function finish() {
+      console.log("Finished, wrote documentation for " + totalFilesWritten + " out of " + totalFilesParsed + " files.");
+    }
+    handleCSS(finish);
   }
 
   if (inputFiles.length != 0) {
@@ -131,7 +157,13 @@ function outputDocs(commentList, pathName) {
     filesToWrite--;
   }
   fs.writeFile(outputDir + fileName + '.md', md, 'utf8', onFW);
-  fs.writeFile(outputDir + fileName + '.html', showdown.makeHtml(md), 'utf8', onFW);
+
+  var html = '<!DOCTYPE html><html><head><title>' + fileName + '</title><meta charset="utf8">';
+  if (cssFile) {
+    html += '<link href="style.css" rel="stylesheet" type="text/css" />';
+  }
+  html += postProcess(showdown.makeHtml(md));
+  fs.writeFile(outputDir + fileName + '.html', html, 'utf8', onFW);
 }
 
 
