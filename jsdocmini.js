@@ -119,7 +119,7 @@ function documentBuffer(b) {
     console.error("Error parsing file " + b.path);
     console.error(ex);
   }
-  comments.sort(function(a, b) { return a.start > b.start });
+  comments.sort(function(a, b) { return a.start - b.start });
   ensureDir(comments, b.path);
 }
 
