@@ -191,7 +191,7 @@ function getDocSlug(jsStr, pos) {
   var replacers = [
     /function\s+(\w+)\(.*$/g,
     /.+?(\w+)\s*[:=]\s*function\s*\(.*$/g,
-    /\w+\.prototype\.(\w+).*$/g
+    /.*\w+\.prototype\.(\w+).*$/g
   ];
 
   var haveReplaced = false, i = replacers.length, lastRV = rv;
