@@ -36,6 +36,12 @@ function copyFile(src, target, cb) {
   readStream.once('end', cb);
 }
 
+function readableSlug(str) {
+  var rv = str.replace(/[-_^.]+/g, ' ').trim();
+  rv = rv[0].toUpperCase() + rv.substring(1);
+  return rv.replace(/([A-Z])([A-Z][a-z])/g, '$1 $2').replace(/([^A-Z])([A-Z])/g, '$1 $2').replace(/([A-Za-z])([^A-Za-z])/g, '$1 $2');
+}
+
 
 function handleCSS(cb) {
   if (cssFile) {
@@ -138,13 +144,14 @@ function outputDocs(commentList, pathName) {
     var c = commentList[i];
     var t = '';
     if (c.slug) {
-      t += '##' + ((c.slug[0] && c.slug[0] == c.slug[0].toLowerCase()) ? '# ' : ' ') + c.slug + '\n';
+      t += '##' + ((c.slug[0] && c.slug[0] == c.slug[0].toLowerCase()) ? '# ' : ' ');
+      t += c.slug + '\n';
     }
     t += c.text;
     outParts.push(t);
   }
   var fileName = path.basename(pathName, path.extname(pathName));
-  var md = '# ' + fileName + '\n' + outParts.join('\n\n');
+  var md = '# ' + readableSlug(fileName) + '\n' + outParts.join('\n\n');
   md = preProcess(md);
   var wrote = false;
   function onFW(err) {
@@ -161,7 +168,7 @@ function outputDocs(commentList, pathName) {
   }
   fs.writeFile(outputDir + fileName + '.md', md, 'utf8', onFW);
 
-  var html = '<!DOCTYPE html><html><head><title>' + fileName[0].toUpperCase() + fileName.substring(1) + '</title><meta charset="utf8">';
+  var html = '<!DOCTYPE html><html><head><title>' + readableSlug(fileName) + '</title><meta charset="utf8">';
   if (cssFile) {
     html += '<link href="style.css" rel="stylesheet" type="text/css" />';
   }
