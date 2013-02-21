@@ -64,6 +64,7 @@ function documentFile(pathName) {
     if (err) {
       if (err.code == 'EISDIR') {
         pendingDirExplorations++;
+        totalFilesParsed--;
         console.log(pathName + " is a directory, reading all files...");
         fs.readdir(pathName, function onFiles(err, files) {
           if (err) throw err;
